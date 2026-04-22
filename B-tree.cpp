@@ -34,7 +34,24 @@ public:
         }
         return true;
     }
+
+    void addChild(Node* child_node){
+        this->children.push_back(child_node);
+        child_node->parent = this;
+    }
 };
+
+void rewireNode(Node* new_parent_Node, Node* new_child_Node, int direction){
+    if (new_parent_Node == nullptr){
+            new_child_Node->parent = nullptr;
+            return;
+    }
+    if (new_child_Node == nullptr){
+        return;
+    }
+    new_parent_Node->children[direction] = new_child_Node;
+    new_child_Node->parent = new_parent_Node;
+}
 
 class BinaryTree { // по сути имеет root ноду и набор методов
 public:
@@ -52,10 +69,6 @@ public:
         Node* curr_Node = root;
         while(1){
             if (!curr_Node->Allnullptr()){ // если есть дети
-                if (curr_Node->tokens.size() == 4){ // переполнение с детьми (бывает только от домино)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    continue;
-                }
-
                 int direction = curr_Node->tokens.size(); // дефолт в самую правую позицию, иначе раньше
                 for (int i = 0; i < curr_Node->tokens.size(); i++){
                     if (tok.key < curr_Node->tokens[i].key){
@@ -65,41 +78,88 @@ public:
                 if (curr_Node->children[direction] != nullptr){
                     curr_Node = curr_Node->children[direction]; // перешли на ребёнка
                 }
+                continue;
             }
             else{ // нет детей
                 curr_Node->tokens.push_back(tok); // добавление токена в нужное место
                 sort(curr_Node->tokens.begin(), curr_Node->tokens.end(), compareTokens);
-
-                if (curr_Node->tokens.size() == 4){ // если переполнение
-                    vector<Token> left(curr_Node->tokens.begin(), curr_Node->tokens.begin() + 2);
-                    vector<Token> right = {curr_Node->tokens[3]};
-                    Token middle = curr_Node->tokens[2];
-
-                    if (root == curr_Node){ // переполнение в корне
-                        Node* new_root = new Node(vector<Token> {middle});
-                        root = new_root;
-                        root->children[0] = new Node(left);
-                        root->children[1] = new Node(right);
-                        delete curr_Node;
-                        return;
-                    }
-
-                    Node* new_left = new Node(left);
-                    Node* new_right = new Node(right);
-
-                    // закинули указатели родителю
-                    Node* par = curr_Node->parent;
-                    auto it = find(par->children.begin(), par->children.end(), curr_Node);
-                    par->children.erase(it);
-                    par->children.insert(it, {new_left, new_right});
-
-                    par->tokens.push_back(middle); // закинули в родителя токен
-                    sort(par->tokens.begin(), par->tokens.end(), compareTokens);
-
-                    curr_Node = par; // перешли на родителя
-                }
             }
 
+        }
+
+        while (curr_Node->tokens.size() == 4){ // если переполнение
+            if (!curr_Node->Allnullptr()){ // переполнение с детьми (бывает только от домино)
+                vector<Token> left(curr_Node->tokens.begin(), curr_Node->tokens.begin() + 2);
+                vector<Token> right = {curr_Node->tokens[3]};
+                Token middle = curr_Node->tokens[2];
+                
+                Node* new_left = new Node(left);
+                Node* new_right = new Node(right);
+
+                if (root == curr_Node){ // если корневой
+                    Node* new_root = new Node(vector<Token> {middle});
+                    root = new_root;
+                    vector<Node*> old_children = curr_Node->children;
+                    curr_Node->children.clear();
+                    root->addChild(new Node(left));
+                    root->addChild(new Node(right));
+
+                    root->children[0]->addChild(old_children[0]);
+                    root->children[0]->addChild(old_children[1]);
+                    root->children[0]->addChild(old_children[2]);
+
+                    root->children[1]->addChild(old_children[3]);
+                    root->children[1]->addChild(old_children[4]);
+
+                    delete curr_Node;
+                    return;
+                }
+
+                // закинули указатели родителю
+                Node* par = curr_Node->parent;
+                auto it = find(par->children.begin(), par->children.end(), curr_Node);
+                par->children.erase(it);
+                par->children.insert(it, {new_left, new_right});
+                new_left->parent = par;
+                new_right->parent = par;
+
+                par->tokens.push_back(middle); // закинули в родителя токен
+                sort(par->tokens.begin(), par->tokens.end(), compareTokens);
+
+                curr_Node = par;
+                continue;     
+            }
+            else{
+                vector<Token> left(curr_Node->tokens.begin(), curr_Node->tokens.begin() + 2);
+                vector<Token> right = {curr_Node->tokens[3]};
+                Token middle = curr_Node->tokens[2];
+
+                if (root == curr_Node){ // переполнение в корне
+                    Node* new_root = new Node(vector<Token> {middle});
+                    root = new_root;
+                    root->children[0] = new Node(left);
+                    root->children[1] = new Node(right);
+                    delete curr_Node;
+                    return;
+                }
+
+                Node* new_left = new Node(left);
+                Node* new_right = new Node(right);
+
+                // закинули указатели родителю
+                Node* par = curr_Node->parent;
+                auto it = find(par->children.begin(), par->children.end(), curr_Node);
+                par->children.erase(it);
+                par->children.insert(it, {new_left, new_right});
+                new_left->parent = par;
+                new_right->parent = par;
+
+                par->tokens.push_back(middle); // закинули в родителя токен
+                sort(par->tokens.begin(), par->tokens.end(), compareTokens);
+
+                curr_Node = par; // перешли на родителя
+                continue;
+            }
         }
     }
 
