@@ -1,0 +1,205 @@
+1. add a 1
+[a]
+2. add b 2
+[a, b]
+3. add c 3
+[a, b, c]
+4. add d 4
+[c]
+    [a, b]
+    [d]
+5. add e 5
+[c]
+    [a, b]
+    [d, e]
+6. add f 6
+[c]
+    [a, b]
+    [d, e, f]
+7. add g 7
+[c, f]
+    [a, b]
+    [d, e]
+    [g]
+8. remove b
+[c, f]
+    [a]
+    [d, e]
+    [g]
+9. remove nonexistent
+Error: key not found
+10. find d
+Found token: {d, 4}
+11. find nonexistent
+Error: key not found
+12. add a 1
+Error: token with the same key already exists
+13. abracadabra
+Error: Unknown command
+14. add a
+Error: invalid add input
+15. print
+[c, f]
+    [a]
+    [d, e]
+    [g]
+16. remove a
+[d, f]
+    [c]
+    [e]
+    [g]
+17. remove e
+[f]
+    [c, d]
+    [g]
+18. remove d
+[f]
+    [c]
+    [g]
+19. remove g
+[c, f]
+20. add 1 1.2
+[1, c, f]
+21. add 2 2.0
+[c]
+    [1, 2]
+    [f]
+22. add A 3.0
+[c]
+    [1, 2, A]
+    [f]
+23. add B 4.333
+[A, c]
+    [1, 2]
+    [B]
+    [f]
+24. add Z 5
+[A, c]
+    [1, 2]
+    [B, Z]
+    [f]
+25. add _ 6.021
+[A, c]
+    [1, 2]
+    [B, Z, _]
+    [f]
+26. add - 7
+[A, Z, c]
+    [1, 2]
+    [-, B]
+    [_]
+    [f]
+27. add ! 8
+[A, Z, c]
+    [1, 2]
+    [-, B]
+    [!, _]
+    [f]
+28. add @ 9
+[A, Z, c]
+    [1, 2]
+    [-, B]
+    [!, @, _]
+    [f]
+29. find -
+Found token: {-, 7}
+30. remove f
+[A, Z, _]
+    [1, 2]
+    [-, B]
+    [!, @]
+    [c]
+31. add # 100
+[A, Z, _]
+    [1, 2]
+    [-, B]
+    [!, #, @]
+    [c]
+32. add d 111
+[A, Z, _]
+    [1, 2]
+    [-, B]
+    [!, #, @]
+    [c, d]
+33. add e 42
+[A, Z, _]
+    [1, 2]
+    [-, B]
+    [!, #, @]
+    [c, d, e]
+34. add g 101
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e]
+        [c, d]
+        [g]
+35. print
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e]
+        [c, d]
+        [g]
+36. add h 991
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e]
+        [c, d]
+        [g, h]
+37. add i 143
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e]
+        [c, d]
+        [g, h, i]
+38. add j 0.1
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e, i]
+        [c, d]
+        [g, h]
+        [j]
+39. add k 23
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e, i]
+        [c, d]
+        [g, h]
+        [j, k]
+40. add l 96
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e, i]
+        [c, d]
+        [g, h]
+        [j, k, l]
+41. add abracadabra 666
+[_]
+    [A, Z]
+        [1, 2]
+        [-, B]
+        [!, #, @]
+    [e, i]
+        [c, d]
+        [abracadabra, g, h]
+        [j, k, l]

@@ -1,0 +1,41 @@
+add a 1
+add b 2
+add c 3
+add d 4
+add e 5
+add f 6
+add g 7
+remove b
+remove nonexistent
+find d
+find nonexistent
+add a 1
+abracadabra
+add a
+print
+remove a
+remove e
+remove d
+remove g
+add 1 1.2
+add 2 2.0
+add A 3.0
+add B 4.333
+add Z 5
+add _ 6.021
+add - 7
+add ! 8
+add @ 9
+find -
+remove f
+add # 100
+add d 111
+add e 42
+add g 101
+print
+add h 991
+add i 143
+add j 0.1
+add k 23
+add l 96
+add abracadabra 666

@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 class Token{ // токен строка - значение
@@ -44,23 +46,11 @@ public:
         return true;
     }
 
-    void addChild(Node* child_node){
+    void addChild(Node* child_node){ // в сути замена push_back в children но с передачей родителя
         this->children.push_back(child_node);
         child_node->parent = this;
     }
 };
-
-void rewireNode(Node* new_parent_Node, Node* new_child_Node, int direction){
-    if (new_parent_Node == nullptr){
-            new_child_Node->parent = nullptr;
-            return;
-    }
-    if (new_child_Node == nullptr){
-        return;
-    }
-    new_parent_Node->children[direction] = new_child_Node;
-    new_child_Node->parent = new_parent_Node;
-}
 
 class BinaryTree { // по сути имеет root ноду и набор методов
 private:
@@ -85,11 +75,11 @@ private:
         return {nullptr, Token()};
     }
 
-    pair<Node*, Token> findNodeAndToken(string str){
+    pair<Node*, Token> findNodeAndToken(string str){ // когда надо от текущего искать
         return findNodeAndToken(root, str);
     }
 
-    pair<Node*, Token> findMinSuccessor(Node* del_node, Token del_token){
+    pair<Node*, Token> findMinSuccessor(Node* del_node, Token del_token){ // ищу наследника, а не предшественника
         auto it = find(del_node->tokens.begin(), del_node->tokens.end(), del_token);
         int index = distance(del_node->tokens.begin(), it);
 
@@ -103,6 +93,15 @@ private:
                 return {curr_node, curr_node->tokens[0]};
             }
         }
+    }
+
+    bool ifHasCopy(Node* node, Token tok){
+        for (int i = 0; i < node->tokens.size(); i++){
+            if (node->tokens[i].key == tok.key){
+                return true;
+            }
+        }
+        return false;
     }
 public:
     Node* root;
@@ -130,18 +129,28 @@ public:
         return Token();
     }
 
-    Token findToken(string str){
+    Token findToken(string str){ // когда надо от текущего искать
         return findToken(root, str);
     }
 
-
+    void rebuildTree(){
+        if (root->tokens.size() == 0){
+            Node* successor = root->children[0];
+            delete root;
+            root = successor;
+        }
+        return;
+    }
 
     void delToken(string str){
         auto [del_node, del_token] = findNodeAndToken(str);
+        if (del_node == nullptr){
+            return;
+        }
         auto it = find(del_node->tokens.begin(), del_node->tokens.end(), del_token);
         int index = distance(del_node->tokens.begin(), it);
 
-        if (del_node->Allnullptr()){ // нет детей
+        if (del_node->Allnullptr()){ // нет детей (лист)
             if (del_node->tokens.size() > 1){ // не единственный в узле
                 auto it = find(del_node->tokens.begin(), del_node->tokens.end(), del_token);
                 del_node->tokens.erase(it);
@@ -154,14 +163,12 @@ public:
                 return;
             }
             // лист не в корне
-            
             auto it = find(del_node->parent->children.begin(), del_node->parent->children.end(), del_node);
             int direction = distance(del_node->parent->children.begin(), it);
-            // cout << direction << endl;
-            if (direction - 1 > 0){ // если берём у левого
+            if (direction - 1 >= 0){ // если берём у левого
                 if (del_node->parent->children[direction-1]->tokens.size() > 1){
                     Token new_tok = del_node->parent->tokens[direction-1];
-                    Token new_replace_tok = del_node->parent->children[direction-1]->tokens[-1];
+                    Token new_replace_tok = del_node->parent->children[direction-1]->tokens.back();
                     del_node->parent->tokens[direction-1] = new_replace_tok;
                     del_node->tokens[0] = new_tok;
                     del_node->parent->children[direction-1]->tokens.pop_back();
@@ -180,11 +187,11 @@ public:
             }
             
             // если слияние
-            if (direction - 1 > 0){ // если сливаем с левым
+            if (direction - 1 >= 0){ // если сливаем с левым
                 Token new_add_tok = del_node->parent->tokens[direction-1];
                 del_node->parent->children[direction-1]->tokens.push_back(new_add_tok);
                 auto it = find(del_node->parent->tokens.begin(), del_node->parent->tokens.end(), new_add_tok);
-                del_node->tokens.erase(it);
+                del_node->parent->tokens.erase(it);
                 del_node->parent->children.erase(del_node->parent->children.begin() + direction);
                 delete del_node;
                 return;
@@ -206,6 +213,11 @@ public:
         return;
     }
 
+    void removeToken(string str){
+        delToken(str);
+        rebuildTree();
+    }
+
     void addToken(Token tok){ // передаю токен а не значение (будет в мейне)
         if (root == nullptr){ // если дерево пустое
             Node* nod = new Node(vector<Token> {tok});
@@ -222,19 +234,17 @@ public:
                         direction = i;
                     }
                 }
-                // cout << direction << endl;
                 if (curr_Node->children[direction] != nullptr){
                     curr_Node = curr_Node->children[direction]; // перешли на ребёнка
                 }
-                // else{
-                //     cout << "ERROR" << endl;
-                //     return;
-                // }
+
                 continue;
             }
             else{ // нет детей
-                curr_Node->tokens.push_back(tok); // добавление токена в нужное место
-                sort(curr_Node->tokens.begin(), curr_Node->tokens.end(), compareTokens);
+                if (!ifHasCopy(curr_Node, tok)){ // копии просто скипаем
+                    curr_Node->tokens.push_back(tok); // добавление токена в нужное место
+                    sort(curr_Node->tokens.begin(), curr_Node->tokens.end(), compareTokens);
+                }
                 break;
             }
 
@@ -290,10 +300,8 @@ public:
                 if (root == curr_Node){ // переполнение в корне
                     Node* new_root = new Node(vector<Token> {middle});
                     root = new_root;
-                    root->children[0] = new Node(left);
-                    root->children[0]->parent = root;
-                    root->children[1] = new Node(right);
-                    root->children[1]->parent = root;
+                    root->addChild(new Node(left));
+                    root->addChild(new Node(right));
                     delete curr_Node;
                     return;
                 }
@@ -333,72 +341,188 @@ public:
         }
     }
 
+    void printTree(){
+        printTree(root);
+    }
+
+    void clearTree(Node* node){
+        if (node->tokens.size() == 0){
+            return;
+        }
+        for (int i = 0; i < node->children.size(); i++){
+            clearTree(node->children[i]);
+        }
+        node->children.clear();
+
+        if (node->parent == nullptr){ // по итогу у родителя остаётся вектор nullptr-ов, который мы удаляем
+            root = nullptr;
+        }
+        delete node;
+    }
+
+    void clearTree(){
+        clearTree(root);
+    }
 };
 
+void logCommand(int line_number, string separator_ln, string line){
+    cout << line_number << separator_ln << line << endl;
+}
+
+void logError(string error){
+    cout << "Error: " << error << endl;
+}
+
 int main(){
-    Token a = Token("a", 1);
-    Token b = Token("b", 2);
-    Token c = Token("c", 3);
-    Token d = Token("d", 4);
-    Token e = Token("e", 5);
-    Token f = Token("f", 6);
-    Token g = Token("g", 7);
-    Token h = Token("h", 8);
+    BinaryTree tree(nullptr);
 
-    Node* f_node = new Node(vector<Token> {b, g});
-    BinaryTree tree = BinaryTree(f_node);
+    string separator_ln = ". ";
 
-    Node* one_node = new Node(vector<Token> {a});
-    Node* two_node = new Node(vector<Token> {c, d, e});
-    Node* three_node = new Node(vector<Token> {h});
+    string input_filename = "C:/Code/Funda_laba_C/B-tree_realisasion_cpp/input.txt";
+    string output_filename = "C:/Code/Funda_laba_C/B-tree_realisasion_cpp/output.txt";
 
-    tree.root->addChild(one_node);
-    tree.root->addChild(two_node);
-    tree.root->addChild(three_node);
+    ifstream inputFile(input_filename);
+    if (!inputFile.is_open()) {
+        cout << "Error: Could not open file " << input_filename << endl;
+        return 1;
+    }
 
-    tree.printTree(tree.root);
+    ofstream outFile(output_filename);
+    streambuf* coutbuf = cout.rdbuf();
+    cout.rdbuf(outFile.rdbuf()); // везде cout, который перенаправляется в файл (мне было лень всё переделывать, и так универсальнее)
 
-    string need = "e";
+    string line;
+    int line_number = 0;
 
-    Token found = tree.findToken(need);
-    cout << found.value << endl;
+    while (getline(inputFile, line)){
+        line_number++;
 
-    tree.addToken(f);
+        if (line.empty()){
+            continue;
+        }
 
-    tree.printTree(tree.root);
+        stringstream ss(line); // закидываю строку (аналогично cin, но именно в ss)
+        string command;
+        ss >> command;
 
-    tree.delToken("d");
+        if (command == "add"){
+            string key;
+            float value;
+            logCommand(line_number, separator_ln, line);
+            if (ss >> key && ss >> value){
+                if (tree.findToken(key).key == ""){
+                    tree.addToken(Token(key, value));
+                    tree.printTree();
+                }
+                else{
+                    logError("token with the same key already exists");
+                }
+            }
+            else{
+                logError("invalid add input");
+            }
+        }
+        else if (command == "remove"){
+            string key;
+            logCommand(line_number, separator_ln, line);
+            ss >> key;
+            if (tree.findToken(key).key != ""){
+                tree.removeToken(key);
+                tree.printTree();
+            }
+            else{
+                logError("key not found");
+            }
+        }
+        else if (command == "print"){
+            logCommand(line_number, separator_ln, line);
+            tree.printTree();
+        }
+        else if (command == "find"){
+            string key;
+            logCommand(line_number, separator_ln, line);
+            ss >> key;
+            Token found = tree.findToken(key);
+            if (found.key == ""){
+                logError("key not found");
+            }
+            else{
+                cout << "Found token: " << "{" << found.key << ", " << found.value << "}" << endl;
+            }
+        }
+        else{
+            logCommand(line_number, separator_ln, line);
+            logError("Unknown command");
+        }
+    }
 
-    tree.printTree(tree.root);
+    inputFile.close();
+    outFile.close();
+    cout.rdbuf(coutbuf);
 
-    tree.delToken("b");
-
-    tree.printTree(tree.root);
-
-
-    // cout << tree.root->tokens[0].key << endl;
-
-    // // if (tree.root->Allnullptr()){
-    // //     cout << 1 << endl;
-    // // }
-    // // else{
-    // //     cout << 0 << endl;
-    // // }
-
-    // tree.addToken(b);
-
-    // cout << tree.root->tokens[1].key << endl;
-    // tree.printTree(tree.root);
-
-    // tree.addToken(c);
-    // tree.addToken(d);
-
-    // tree.printTree(tree.root);
-
-
-
-
-
+    tree.clearTree();
 
     return 0;
 }
+
+// int main(){
+//     Token a = Token("a", 1);
+//     Token b = Token("b", 2);
+//     Token c = Token("c", 3);
+//     Token d = Token("d", 4);
+//     Token e = Token("e", 5);
+//     Token f = Token("f", 6);
+//     Token g = Token("g", 7);
+//     Token h = Token("h", 8);
+
+//     Node* f_node = new Node(vector<Token> {b, g});
+//     BinaryTree tree = BinaryTree(f_node);
+
+//     Node* one_node = new Node(vector<Token> {a});
+//     Node* two_node = new Node(vector<Token> {c, d, e});
+//     Node* three_node = new Node(vector<Token> {h});
+
+//     tree.root->addChild(one_node);
+//     tree.root->addChild(two_node);
+//     tree.root->addChild(three_node);
+
+//     tree.printTree(tree.root);
+
+//     string need = "e";
+
+//     Token found = tree.findToken(need);
+//     cout << found.value << endl;
+
+//     tree.addToken(f);
+
+//     tree.printTree(tree.root);
+
+//     tree.removeToken("d");
+
+//     tree.printTree(tree.root);
+
+//     tree.removeToken("b");
+
+//     tree.printTree(tree.root);
+
+
+//     // cout << tree.root->tokens[0].key << endl;
+
+//     // // if (tree.root->Allnullptr()){
+//     // //     cout << 1 << endl;
+//     // // }
+//     // // else{
+//     // //     cout << 0 << endl;
+//     // // }
+
+//     // tree.addToken(b);
+
+//     // cout << tree.root->tokens[1].key << endl;
+//     // tree.printTree(tree.root);
+
+//     // tree.addToken(c);
+//     // tree.addToken(d);
+
+//     // tree.printTree(tree.root);
+//     return 0;
+// }
